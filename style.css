@@ -38,3 +38,10 @@ body {
 .fixedCell {
   background-color: #8bc34a;
 }
+
+#next-tetro {
+  position: absolute;
+  top: 200px;
+  left: 200px;
+  font-size: 0;
+}

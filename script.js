@@ -1,6 +1,7 @@
 let main = document.querySelector(".main");
 const scoreElem = document.getElementById("score");
 const levelElem = document.getElementById("level");
+const nextTetroElem = document.getElementById("next-tetro");
 
 let playField = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -24,6 +25,8 @@ let playField = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 ];
+
+// let playField = Array(20).fill(Array(10).fill(0));
 
 let score = 0;
 let currentLevel = 1;
@@ -60,27 +63,16 @@ let possibleLevels = {
   },
 };
 
-let activeTetro = {
-  x: 0,
-  y: 0,
-  shape: [
-    [0, 1, 0, 0],
-    [0, 1, 0, 0],
-    [0, 1, 0, 0],
-    [0, 1, 0, 0],
-  ],
-};
-
 let figures = {
   O: [
     [1, 1],
     [1, 1],
   ],
   I: [
-    [0, 1, 0, 0],
-    [0, 1, 0, 0],
-    [0, 1, 0, 0],
-    [0, 1, 0, 0],
+    [0, 0, 0, 0],
+    [1, 1, 1, 1],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
   ],
   S: [
     [0, 1, 1],
@@ -109,6 +101,9 @@ let figures = {
   ],
 };
 
+let activeTetro = getNewTetro();
+let nextTetro = getNewTetro();
+
 function draw() {
   let mainInnerHTML = "";
   for (let y = 0; y < playField.length; y++) {
@@ -123,6 +118,21 @@ function draw() {
     }
   }
   main.innerHTML = mainInnerHTML;
+}
+
+function drawNextTetro() {
+  let nextTetroInnerHTML = "";
+  for (let y = 0; y < nextTetro.shape.length; y++) {
+    for (let x = 0; x < nextTetro.shape[y].length; x++) {
+      if (nextTetro.shape[y][x]) {
+        nextTetroInnerHTML += '<div class="cell movingCell"></div>';
+      } else {
+        nextTetroInnerHTML += '<div class="cell"></div>';
+      }
+    }
+    nextTetroInnerHTML += "<br>";
+  }
+  nextTetroElem.innerHTML = nextTetroInnerHTML;
 }
 
 function removePrevActiveTetro() {
@@ -195,16 +205,16 @@ function removeFullLines() {
 
   switch (filledLines) {
     case 1:
-      score += 10;
+      score += possibleLevels[currentLevel].scorePerLine;
       break;
     case 2:
-      score += 10 * 3;
+      score += possibleLevels[currentLevel].scorePerLine * 3;
       break;
     case 3:
-      score += 10 * 6;
+      score += possibleLevels[currentLevel].scorePerLine * 6;
       break;
     case 4:
-      score += 10 * 12;
+      score += possibleLevels[currentLevel].scorePerLine * 12;
       break;
   }
 
@@ -219,7 +229,12 @@ function removeFullLines() {
 function getNewTetro() {
   const possibleFigures = "IOLJTSZ";
   const rand = Math.floor(Math.random() * 7);
-  return figures[possibleFigures[rand]];
+  const newTetro = figures[possibleFigures[rand]];
+  return {
+    x: Math.floor((10 - newTetro[0].length) / 2),
+    y: 0,
+    shape: figures[possibleFigures[rand]],
+  };
 }
 
 function fixTetro() {
@@ -238,9 +253,18 @@ function moveTetroDown() {
     activeTetro.y -= 1;
     fixTetro();
     removeFullLines();
-    activeTetro.shape = getNewTetro();
-    activeTetro.x = Math.floor((10 - activeTetro.shape[0].length) / 2);
-    activeTetro.y = 0;
+    activeTetro = nextTetro;
+    nextTetro = getNewTetro();
+  }
+}
+
+function dropTetro() {
+  for (let y = activeTetro.y; y < playField.length; y++) {
+    activeTetro.y += 1;
+    if (hasCollisions()) {
+      activeTetro.y -= 1;
+      break;
+    }
   }
 }
 
@@ -259,9 +283,12 @@ document.onkeydown = function (e) {
     moveTetroDown();
   } else if (e.keyCode === 38) {
     rotateTetro();
+  } else if (e.keyCode === 32) {
+    dropTetro();
   }
   addActiveTetro();
   draw();
+  drawNextTetro();
 };
 
 scoreElem.innerHTML = score;
@@ -269,11 +296,13 @@ levelElem.innerHTML = currentLevel;
 
 addActiveTetro();
 draw();
+drawNextTetro();
 
 function startGame() {
   moveTetroDown();
   addActiveTetro();
   draw();
+  drawNextTetro();
   setTimeout(startGame, possibleLevels[currentLevel].speed);
 }
 
